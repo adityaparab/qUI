@@ -12,6 +12,8 @@
   "dependencies":{
       "chokidar":"latest",
       "chalk":"latest",
-      "scp2":"latest"
+      "scp2":"latest",
+      "fs-extra":"latest",
+      "fs-sync":"latest"
   }
 }

@@ -1,12 +1,14 @@
 var chokidar = require('chokidar');
 var chalk = require('chalk');
 var exec = require('child_process').exec;
+var fs = require('fs-extra');
+var fss = require('fs-sync');
 var client = require('scp2');
+var _path = require('path');
 var paths = require('./paths');
 var remote = require('./remote');
 var fsEvents = require('./FileSystemEvents');
 var fsCommands = require('./FileSystemCommands');
-var _path = require('path');
 
 var sourceRootPath,destinationRootPath;
 
@@ -56,39 +58,40 @@ rAd.on('all', function(event, path) {
 });
 
 function localDeploy(event, path){
-    var OriginatingPath = path;
-    var relativePath = OriginatingPath.slice(sourceRootPath.length);
-    var originalEvent = event;
+    var relativePath = path.slice(sourceRootPath.length);
+    var targetPath = destinationRootPath+relativePath;
+    var folder = _path.dirname(relativePath);
+    folder = destinationRootPath+folder;
+    var entity = _path.basename(path);
 
-    var targetPath = destinationRootPath + relativePath;
-
-    var fileName = OriginatingPath.replace(/^.*[\\\/]/, '');
-    var c;
     switch (event) {
         case fsEvents.FILE_CHANGED:
         case fsEvents.FILE_ADDED:
-            c = commands.CopyFile([OriginatingPath,targetPath]);
+            fs.ensureDirSync(folder);
+            fs.copySync(path,targetPath);
+            console.log(boldGreen('Target : @localhost || Event : '+event+' Entity : '+entity));
             break;
         case fsEvents.FILE_DELETED:
-            c = commands.DeleteFile([targetPath]);
+            if(fss.exists(targetPath)){
+                fs.ensureDirSync(folder);
+                fs.removeSync(targetPath);
+                console.log(boldGreen('Target : @localhost || Event : '+event+' Entity : '+entity));
+            }
             break;
         case fsEvents.FOLDER_ADDED:
-            c = commands.CopyFolder([OriginatingPath,targetPath]);
+            fs.ensureDirSync(folder);
+            fs.copySync(path,targetPath);
+            console.log(boldGreen('Target : @localhost || Event : '+event+' Entity : '+entity));
             break;
         case fsEvents.FOLDER_DELETED:
-            c = commands.DeleteFolder([targetPath]);
+            fs.ensureDirSync(folder);
+            fs.removeSync(targetPath);
+            console.log(boldGreen('Target : @localhost || Event : '+event+' Entity : '+entity));
             break;
         default:
             c = 'echo "Error"';
     }
-    //execute the command here
-    exec(c, function(error, stdout, stderr) {
-        if(error){
-            console.log(red('Error : ')+magenta(c));
-        } else{
-            console.log(boldGreen('Success : ')+magenta(c));
-        }
-    });
+
 }
 
 function remoteDeploy(event, path){
